@@ -20,6 +20,7 @@ Usage
  * In settings.py add protectmiddlewareapp to INSTALLED_APPS
  * In settings.py add ```protectmiddlewareapp.protectmiddleware.ProtectMiddleware()``` to end of MIDDLEWARE_CLASSES.
  * In settings.py add variable PROTECTED_ADMIN_KEY that is 20 characters as your admin password. For example ```PROTECTED_ADMIN_KEY = "99999999998888888888" ```
+ * Run syncdb (this app includes two small models).
  
 If you did the points above your site should be blocked from visitors who don't have the access url given by you.
 
