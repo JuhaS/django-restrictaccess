@@ -1,7 +1,7 @@
 django-restrictaccess
 =====================
 
-Django library that allows to restrict access (user needs a key) to any django site in a plug-n-play fashion.
+Django library that allows to restrict access (user needs a key) to any django site in a plug-n-play fashion. You won't need to change any of your current url conf's or user management, this works completely on the middleware layer.
 
 Version  0.1, use with caution. It does include tests.
 
