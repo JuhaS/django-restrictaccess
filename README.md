@@ -17,8 +17,8 @@ Usage
 -------------
 
  * Install the protectmiddlewareapp by copying the folder to somewhere in your pythonpath (pip installation coming).
- * In settings.py add protectmiddlewareapp to INSTALLED_APPS
- * In settings.py add ```protectmiddlewareapp.protectmiddleware.ProtectMiddleware()``` to end of MIDDLEWARE_CLASSES.
+ * In settings.py add protectmiddlewareapp to INSTALLED_APPS (needed for the models)
+ * In settings.py add ```protectmiddlewareapp.protectmiddleware.ProtectMiddleware``` to end of MIDDLEWARE_CLASSES.
  * In settings.py add variable PROTECTED_ADMIN_KEY that is 20 characters as your admin password. For example ```PROTECTED_ADMIN_KEY = "99999999998888888888" ```
  * Run syncdb (this app includes two small models).
  
