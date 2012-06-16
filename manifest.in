@@ -1,2 +1,3 @@
 include README.md
-recursive-include djrestrictaccess *.py *.html *.js
+recursive-include djrestrictaccess/templates *.html
+

@@ -3,10 +3,11 @@ from distutils.core import setup
 
 setup(
     name='django-restrictaccess',
-    version='0.0.1',
+    version='0.0.3',
     author=u'Juha Suomalainen',
     author_email='',
     packages=['djrestrictaccess'],
+    package_data={'djrestrictaccess': ['templates/*.html']},
     url='https://github.com/JuhaS/django-restrictaccess',
     license='BSD licence, see LICENCE.txt',
     description='Django library that allows to restrict access (user needs a key) to any django site in a plug-n-play fashion.',
