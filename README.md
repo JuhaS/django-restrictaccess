@@ -16,11 +16,12 @@ Features
 Usage
 -------------
 
- * Install the protectmiddlewareapp by copying the folder to somewhere in your pythonpath (pip installation coming).
- * In settings.py add protectmiddlewareapp to INSTALLED_APPS (needed for the models)
- * In settings.py add ```protectmiddlewareapp.protectmiddleware.ProtectMiddleware``` to end of MIDDLEWARE_CLASSES.
+ * Install with pip from this repository: ```pip install -e git+git://github.com/JuhaS/django-restrictaccess.git#egg=djrestrictaccess```
+ * 
+ * In settings.py add djrestrictaccess to INSTALLED_APPS (needed for the models)
+ * In settings.py add ```djrestrictaccess.restrictaccessmoddleware.RestrictAccessMiddleware``` to end of MIDDLEWARE_CLASSES.
  * In settings.py add variable PROTECTED_ADMIN_KEY that is 20 characters as your admin password. For example ```PROTECTED_ADMIN_KEY = "99999999998888888888" ```
- * Run syncdb (this app includes two small models).
+ * Run ```python manage.py syncdb```.
  
 If you did the points above your site should be blocked from visitors who don't have the access url given by you.
 
