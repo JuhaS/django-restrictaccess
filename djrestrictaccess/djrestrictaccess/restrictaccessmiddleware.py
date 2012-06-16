@@ -120,6 +120,10 @@ class RestrictAccessMiddleware(object):
         # Sleep to prevent brute forcing
         time.sleep(cls.PROTECTED_SLEEP_TIME_MSEC / 1000)
 
+        # Clean up expired sessions every 50 accesses (avg)
+        if random.randint(0, 50) == 1:
+            WhitelistedSession.objects.filter("expiry" < datetime.datetime.now()).delete()
+
         k = cls.get_access_key(request)
         try:
             access = AccessKey.objects.get(key=k)
