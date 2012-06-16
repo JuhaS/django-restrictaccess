@@ -15,9 +15,3 @@ setup(
     zip_safe=False,
 )
 
-from setuptools import setup, find_packages
-setup(
-    name = "djrestrictaccess",
-    version = "0.0.4",
-    packages = 
-)
