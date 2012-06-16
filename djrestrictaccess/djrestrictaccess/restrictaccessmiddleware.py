@@ -30,7 +30,7 @@ class RestrictAccessMiddleware(object):
         self.set_variable("PROTECTED_NO_SESSION", "Session not detected. Is the SessionMiddleware in the configuration.")
         self.set_variable("PROTECTED_INCORRECT_KEY", "Invalid key")
         self.set_variable("PROTECTED_INCORRECT_ADMIN_KEY", "Invalid admin key")
-        
+
     @staticmethod
     def update_ip_to_sessionkey(request):
         try:
@@ -40,47 +40,48 @@ class RestrictAccessMiddleware(object):
                 # Update session key
                 wlSession.ip = None
                 wlSession.sessionkey = request.session.session_key
-                wlSession.save() 
+                wlSession.save()
         except:
             pass
-        
+
     @classmethod
     def handle_whitelisted_session(cls, request, wlSession):
         if wlSession.expiry < datetime.datetime.now().replace(tzinfo=timezone.utc):
             # Expired, delete it
             wlSession.delete()
-            response = HttpResponseForbidden()            
             return render(request, 'protect_template.html',
-                            {"title": "Unauthorized", 
-                             "message":cls.PROTECTED_ACCESS_EXPIRED, },
+                            {"title": "Unauthorized",
+                             "message": cls.PROTECTED_ACCESS_EXPIRED
+                             },
                             status=403)
         elif cls.url_matches_getaccess(request):
             # Already active session
             return render(request, 'protect_template.html',
-                          {"title": "Session Active Already", 
-                             "message":cls.PROTECTED_ACCESS_GRANTED_ALREADY, }
-                          , status=200)
-    
+                            {"title": "Session Active Already",
+                             "message": cls.PROTECTED_ACCESS_GRANTED_ALREADY
+                            },
+                            status=200)
+
     @staticmethod
     def url_matches_getaccess(request):
         prog = re.compile('/unlock\?key=[0-9]{20}$')
         if re.match(prog, request.get_full_path()):
             return True
         return False
-    
+
     @staticmethod
     def url_matches_admin(request):
         prog = re.compile('/protect_admin\?admin_key=[0-9]{20}$')
         if re.match(prog, request.get_full_path()):
             return True
         return False
-    
+
     @staticmethod
     def get_access_key(request):
         prog = re.compile('/unlock\?key=([0-9]{20})$')
         m = re.search(prog, request.get_full_path())
         return m.group(1)
-    
+
     @staticmethod
     def admin_password_matches(request):
         prog = re.compile('/protect_admin\?admin_key=([0-9]{20})$')
@@ -88,8 +89,8 @@ class RestrictAccessMiddleware(object):
         if m.group(1) == settings.PROTECTED_ADMIN_KEY:
             return True
         else:
-            return False 
-    
+            return False
+
     @classmethod
     def handle_admin_page(cls, request):
         if cls.admin_password_matches(request):
@@ -98,17 +99,20 @@ class RestrictAccessMiddleware(object):
                 key += str(random.randint(0, 9))
             AccessKey.objects.create(key=key, accessesLeft=cls.PROTECTED_NEW_ACCESSKEY_VALID_TIMES)
             remote = request.META['HTTP_HOST']
-            return render(request, 'protect_template.html', 
-                            {"title": "New Access Key Created", 
-                             "message" : cls.PROTECTED_NEW_ACCESSKEY_CREATED.format(created_url='http://' + remote + '/unlock?key=' + key, 
+            return render(request, 'protect_template.html',
+                            {"title": "New Access Key Created",
+                             "message": cls.PROTECTED_NEW_ACCESSKEY_CREATED.format(created_url='http://' + remote + '/unlock?key=' + key,
                                                                                 access_times=cls.PROTECTED_NEW_ACCESSKEY_VALID_TIMES,
-                                                                                access_hours=cls.PROTECTED_EXPIRY_HOURS)},
+                                                                                access_hours=cls.PROTECTED_EXPIRY_HOURS)
+                            },
                             status=200)
         else:
-            return render(request, 'protect_template.html', {"title": "Unauthorized", 
-                             "message":cls.PROTECTED_INCORRECT_ADMIN_KEY, },
+            return render(request, 'protect_template.html',
+                            {"title": "Unauthorized",
+                             "message": cls.PROTECTED_INCORRECT_ADMIN_KEY,
+                            },
                                       status=403)
-    
+
     @classmethod
     def handle_get_access_page(cls, request):
         k = cls.get_access_key(request)
@@ -129,25 +133,29 @@ class RestrictAccessMiddleware(object):
                 client_ip = request.META['REMOTE_ADDR']
                 WhitelistedSession.objects.create(expiry=expiry, ip=client_ip)
             return render(request, 'protect_template.html',
-                            {"title": "Access Granted", 
-                             "message":cls.PROTECTED_ACCESS_GRANTED.format(expiry_hours=cls.PROTECTED_EXPIRY_HOURS, sessions_left=access.accessesLeft), }
-                            , status=200)
+                            {"title": "Access Granted",
+                             "message": cls.PROTECTED_ACCESS_GRANTED.format(expiry_hours=cls.PROTECTED_EXPIRY_HOURS, sessions_left=access.accessesLeft),
+                            },
+                            status=200)
         except AccessKey.DoesNotExist:
             return render(request, 'protect_template.html',
-                            {"title": "Unauthorized", 
-                             "message":cls.PROTECTED_INCORRECT_KEY, }
-                            , status=403)
-    
+                            {"title": "Unauthorized",
+                             "message": cls.PROTECTED_INCORRECT_KEY,
+                             },
+                            status=403)
+
     def process_request(self, request):
         # Check if admin page is accessed
         if self.url_matches_admin(request):
             return self.handle_admin_page(request)
-        
+
         # Session required, fail if id doesn't exist
         if not request.session:
-            return render(request, 'protect_template.html', {"title": "Error", 
-                                 "message":self.PROTECTED_NO_SESSION, },
-                                          status=500)
+            return render(request, 'protect_template.html',
+                                {"title": "Error",
+                                 "message": self.PROTECTED_NO_SESSION,
+                                },
+                                status=500)
 
         self.update_ip_to_sessionkey(request)
 
@@ -161,6 +169,7 @@ class RestrictAccessMiddleware(object):
                 return self.handle_get_access_page(request)
             else:
                 return render(request, 'protect_template.html',
-                              {"title": "Unauthorized", 
-                               "message" : self.PROTECTED_SITE_NOT_PUBLIC_MSG, },
+                              {"title": "Unauthorized",
+                               "message": self.PROTECTED_SITE_NOT_PUBLIC_MSG,
+                              },
                               status=403)
