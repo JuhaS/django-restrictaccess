@@ -10,7 +10,7 @@ from django.test import Client
 from django.http import HttpRequest
 from django.http import HttpResponse
 from djrestrictaccess.models import *
-from djrestrictaccess.restrictaccessciddleware import RestrictAccessMiddleware
+from djrestrictaccess.restrictaccessmiddleware import RestrictAccessMiddleware
 import datetime
 from django.utils import timezone
 
