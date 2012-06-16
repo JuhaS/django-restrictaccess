@@ -8,6 +8,7 @@ from djrestrictaccess.models import WhitelistedSession, AccessKey
 import datetime
 import random
 import re
+import time
 
 
 class RestrictAccessMiddleware(object):
@@ -22,6 +23,7 @@ class RestrictAccessMiddleware(object):
     def __init__(self):
         self.set_variable("PROTECTED_NEW_ACCESSKEY_VALID_TIMES", 2)
         self.set_variable("PROTECTED_EXPIRY_HOURS", 1)
+        self.set_variable("PROTECTED_SLEEP_TIME_MSEC", 500)
         self.set_variable("PROTECTED_SITE_NOT_PUBLIC_MSG", "Site is not public. You need special url to get access.")
         self.set_variable("PROTECTED_ACCESS_GRANTED", 'You have access for {expiry_hours} hours on this session. You have {sessions_left} sessions left for your access url. Click <a href="/">HERE</a> to get to landing page.')
         self.set_variable("PROTECTED_NEW_ACCESSKEY_CREATED", 'New Access Key created successfully. This url gives access {access_times} times for {access_hours} hours each. Give this url to anyone who you wish to give access to: <div id="createdUrl">{created_url}</div>')
@@ -115,6 +117,9 @@ class RestrictAccessMiddleware(object):
 
     @classmethod
     def handle_get_access_page(cls, request):
+        # Sleep to prevent brute forcing
+        time.sleep(cls.PROTECTED_SLEEP_TIME_MSEC / 1000)
+
         k = cls.get_access_key(request)
         try:
             access = AccessKey.objects.get(key=k)
