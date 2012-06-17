@@ -25,6 +25,7 @@ Installation
  
 If you did the points above your site should be blocked from visitors who don't have the access url given by you.
 
+**Temporary uninstall:** Remove the middleware from the MIDDLEWARE_CLASSES
 
 Usage
 -------------
