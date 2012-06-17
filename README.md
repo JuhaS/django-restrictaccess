@@ -11,7 +11,7 @@ Features
  * Once access url is used, current users session allows access access for 1 hour (configurable). Same acess url can be used 2 times (configurable). Access url looks like: ```http://yourhost.com/unlock?key=12345123451234512345```.
  * Admin url that allows you to create access url's just by opening an url. You define the admin password in settings.py. Admin url looks like: ```http://yourhost.com/protect_admin?key=YOURSECRETPASS```
  * This is not 100% security solution, but probably sufficient for showing your prototypes to friends or alpha testing your site.
-
+ * If you logout the session in your app, your session becomes invalid (you'll need to use accessurl again).
 
 Installation
 -------------
@@ -49,14 +49,14 @@ Configuration
 
 You can configure many error and status messages by assigning variables in settings.py (for example ```PROTECTED_SITE_NOT_PUBLIC_MSG = "Not allowed"```. Check protectmiddlewareapp/protectmiddleware.py to see all configurable variables.
 
-Configurable variables (override them in settings.py):
-* PROTECTED_NEW_ACCESSKEY_VALID_TIMES, default=2
-* PROTECTED_EXPIRY_HOURS, default=1
-* PROTECTED_SITE_NOT_PUBLIC_MSG, 'Site is not public. You need special url to get access.'
-* PROTECTED_ACCESS_GRANTED, default='You have access for {expiry_hours} hours on this session. You have {sessions_left} sessions left for your access url. Click <a href="/">HERE</a> to get to landing page.'
-* PROTECTED_NEW_ACCESSKEY_CREATED, default='New Access Key created successfully. This url gives access {access_times} times for {access_hours} hours each. Give this url to anyone who you wish to give access to: <div id="createdUrl">{created_url}</div>'
-* PROTECTED_ACCESS_GRANTED_ALREADY, default=You have already been granted access. Click <a href="/">HERE</a> to get to landing page.'
-* PROTECTED_ACCESS_EXPIRED, default='Your access time ran out.'
-* PROTECTED_NO_SESSION, default='Session not detected. Is the SessionMiddleware in the configuration.'
-* PROTECTED_INCORRECT_KEY, default='Invalid key'
-* PROTECTED_INCORRECT_ADMIN_KEY, 'default=Invalid admin key'
+Configurable variables with default values (override them in settings.py):
+* ```PROTECTED_NEW_ACCESSKEY_VALID_TIMES=2```
+* ```PROTECTED_EXPIRY_HOURS=1```
+* ```PROTECTED_SITE_NOT_PUBLIC_MSG='Site is not public. You need special url to get access.'```
+* ```PROTECTED_ACCESS_GRANTED='You have access for {expiry_hours} hours on this session. You have {sessions_left} sessions left for your access url. Click <a href="/">HERE</a> to get to landing page.'```
+* ```PROTECTED_NEW_ACCESSKEY_CREATED='New Access Key created successfully. This url gives access {access_times} times for {access_hours} hours each. Give this url to anyone who you wish to give access to: <div id="createdUrl">{created_url}</div>'```
+* ```PROTECTED_ACCESS_GRANTED_ALREADY=You have already been granted access. Click <a href="/">HERE</a> to get to landing page.'```
+* ```PROTECTED_ACCESS_EXPIRED='Your access time ran out.'```
+* ```PROTECTED_NO_SESSION='Session not detected. Is the SessionMiddleware in the configuration.'```
+* ```PROTECTED_INCORRECT_KEY='Invalid key'```
+* ```PROTECTED_INCORRECT_ADMIN_KEY='Invalid admin key'```
