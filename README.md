@@ -49,11 +49,11 @@ Configuration
 
 You can configure many error and status messages by assigning variables in settings.py (for example ```PROTECTED_SITE_NOT_PUBLIC_MSG = "Not allowed"```. Check protectmiddlewareapp/protectmiddleware.py to see all configurable variables.
 
-Configurable variables (override them in settings.py):
+Configurable variables default values (override them in settings.py):
 * ```PROTECTED_NEW_ACCESSKEY_VALID_TIMES=2```
 * ```PROTECTED_EXPIRY_HOURS=1```
  
-Configurable messages (override them in settings.py):
+Configurable messages with default values (override them in settings.py):
 * ```PROTECTED_SITE_NOT_PUBLIC_MSG='Site is not public. You need special url to get access.'```
 * ```PROTECTED_ACCESS_GRANTED='You have access for {expiry_hours} hours on this session. You have {sessions_left} sessions left for your access url. Click <a href="/">HERE</a> to get to landing page.'```
 * ```PROTECTED_NEW_ACCESSKEY_CREATED='New Access Key created successfully. This url gives access {access_times} times for {access_hours} hours each. Give this url to anyone who you wish to give access to: <div id="createdUrl">{created_url}</div>'```
