@@ -1,25 +1,25 @@
 """
 This file demonstrates writing tests using the unittest module. These will pass
 when you run "manage.py test".
-
-Replace this with more appropriate tests for your application.
 """
 
 from django.test import TestCase
-from django.test import Client
 from django.http import HttpRequest
-from django.http import HttpResponse
 from djrestrictaccess.models import *
 from djrestrictaccess.restrictaccessmiddleware import RestrictAccessMiddleware
-import datetime
 from django.utils import timezone
+import datetime
+import random
+import string
+
 
 class MockupSession:
-    session_key="1111111111"
+    session_key = "1111111111"
+
 
 class SimpleTest(TestCase):
-    
-    def _get_request(self, path):
+
+    def _create_request(self, path):
         request = HttpRequest()
         request.META = {
             'SERVER_NAME': 'localhost',
@@ -29,97 +29,146 @@ class SimpleTest(TestCase):
         request.session = MockupSession()
         return request
 
+    def _assertContains(self, resp, message):
+        '''
+        Asserts that given response contains the given message. Response content
+        is a template so the message should occur as template tag (eg {TEST_MSG}).
+        '''
+        self.assertNotEqual(resp._get_content().find(message.split('{')[0]), -1)
+
+    def _createRandomAccessKey(self, accessesLeft=1, id=None):
+        '''
+        Creates an AccessKey and inserts it into the database. If no id is given a
+        random id is generated.
+        '''
+        if id and len(id) is not 20:
+            assertFalse(True, "Length of id should be 20")
+        if not id:
+            idStr = "".join(random.choice(string.digits) for x in range(20))
+        else:
+            if len(id) is not 20:
+                assertFalse(True, "Length of id should be 20")
+            idStr = id
+        AccessKey.objects.create(key=idStr, accessesLeft=accessesLeft)
+        return idStr
+
     def setUp(self):
+        self.mw = RestrictAccessMiddleware()
         pass
-    
+
     def tearDown(self):
         for k in AccessKey.objects.all():
             k.delete()
         for k in WhitelistedSession.objects.all():
-            k.delete()    
+            k.delete()
 
     def test_correct_key(self):
-        AccessKey.objects.create(key="12345678901234567890", accessesLeft=1)
-        request = self._get_request('/unlock?key=12345678901234567890')
-        resp = RestrictAccessMiddleware().process_request(request)
+        # setup
+        id = self._createRandomAccessKey()
+        request = self._create_request('/unlock?key=' + id)
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertEqual(resp.status_code, 200)
-        self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_ACCESS_GRANTED.split('{')[0]), -1)
+        self._assertContains(resp, self.mw.PROTECTED_ACCESS_GRANTED)
 
     def test_incorrect_key(self):
-        AccessKey.objects.create(key="12345678901234567890", accessesLeft=1)
-        request = self._get_request('/unlock?key=12345111111234567111')
-        resp = RestrictAccessMiddleware().process_request(request)
+        # setup
+        id = self._createRandomAccessKey()
+        request = self._create_request('/unlock?key=' + id[:-6] + "111111")
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertNotEqual(resp, None)
         self.assertEqual(resp.status_code, 403)
-        self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_INCORRECT_KEY), -1)
-    
+        self._assertContains(resp, self.mw.PROTECTED_INCORRECT_KEY)
+
     def test_unauthorized_no_session(self):
-        AccessKey.objects.create(key="12345678901234567890", accessesLeft=1)
-        WhitelistedSession.objects.create(sessionkey="111122222", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc)+datetime.timedelta(hours=1))
-        request = self._get_request('/normalsite')
-        resp = RestrictAccessMiddleware().process_request(request)
+        # setup
+        self._createRandomAccessKey()
+        WhitelistedSession.objects.create(sessionkey="111122222", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+        request = self._create_request('/normalsite')
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertNotEqual(resp, None)
         self.assertEqual(resp.status_code, 403)
-        self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_SITE_NOT_PUBLIC_MSG), -1)
+        self._assertContains(resp, self.mw.PROTECTED_SITE_NOT_PUBLIC_MSG)
 
     def test_authorized(self):
-        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc)+datetime.timedelta(hours=1))
-        request = self._get_request('/normalsite')        
-        resp = RestrictAccessMiddleware().process_request(request)
+        # setup
+        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+        request = self._create_request('/normalsite')
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertEqual(resp, None)
 
     def test_authorized_accesspage(self):
-        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc)+datetime.timedelta(hours=1))
-        request = self._get_request('/unlock?key=22222222221111111111')        
-        resp = RestrictAccessMiddleware().process_request(request)
+        # setup
+        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+        request = self._create_request('/unlock?key=22222222221111111111')
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertNotEqual(resp, None)
         self.assertEqual(resp.status_code, 200)
-        self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_ACCESS_GRANTED_ALREADY), -1)
-
-
+        self._assertContains(resp, self.mw.PROTECTED_ACCESS_GRANTED_ALREADY)
 
     def test_access_decrease(self):
-        a = AccessKey.objects.create(key='22222222222222222222', accessesLeft=2)
-        request = self._get_request('/unlock?key=22222222222222222222')
-        request.session.sessionkey='2222222222'
-        resp = RestrictAccessMiddleware().process_request(request)
-        acc = AccessKey.objects.get(key='22222222222222222222')
+        # setup
+        id = self._createRandomAccessKey(accessesLeft=2)
+        request = self._create_request('/unlock?key=' + id)
+        request.session.sessionkey = '2222222222'
+        # process
+        self.mw.process_request(request)
+        # validate
+        acc = AccessKey.objects.get(key=id)
         self.assertEqual(acc.accessesLeft, 1)
 
     def test_access_last(self):
-        AccessKey.objects.create(key='33333333333333333333', accessesLeft=1)
-        request = self._get_request('/unlock?key=33333333333333333333')
-        request.session.sessionkey='3333333333'
-        resp = RestrictAccessMiddleware().process_request(request)
-        
+        # setup
+        id = self._createRandomAccessKey(accessesLeft=1)
+        request = self._create_request('/unlock?key=' + id)
+        request.session.sessionkey = '3333333333'
+        # process
+        self.mw.process_request(request)
+        # validate
         try:
-            AccessKey.objects.get(key='33333333333333333333')
+            AccessKey.objects.get(key=id)
             self.assertFalse(True, "AccessKey should be deleted.")
         except AccessKey.DoesNotExist:
             pass
 
     def test_admin_unauthorized(self):
+        # setup
         with self.settings(PROTECTED_ADMIN_KEY='99999999998888888888'):
-            request = self._get_request('/protect_admin?admin_key=22222111112222211111')
-            request.session.sessionkey='3333333333'
-            resp = RestrictAccessMiddleware().process_request(request)
-            self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_INCORRECT_ADMIN_KEY), -1)
+            request = self._create_request('/protect_admin?admin_key=22222111112222211111')
+            request.session.sessionkey = '3333333333'
+            # process
+            resp = self.mw.process_request(request)
+            # validate
+            self._assertContains(resp, self.mw.PROTECTED_INCORRECT_ADMIN_KEY)
 
     def test_admin_correct_key(self):
+        # setup
         with self.settings(PROTECTED_ADMIN_KEY='99999999998888888888'):
-            request = self._get_request('/protect_admin?admin_key=99999999998888888888')
-            request.META['HTTP_HOST']="localhost:8000"
-            request.session.sessionkey='3333333333'
-            resp = RestrictAccessMiddleware().process_request(request)
-            self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_NEW_ACCESSKEY_CREATED.split('{')[0]), -1)
+            request = self._create_request('/protect_admin?admin_key=99999999998888888888')
+            request.META['HTTP_HOST'] = "localhost:8000"
+            request.session.sessionkey = '3333333333'
+            # process
+            resp = self.mw.process_request(request)
+            # validate
+            self._assertContains(resp, self.mw.PROTECTED_NEW_ACCESSKEY_CREATED)
 
     def test_no_session(self):
-        AccessKey.objects.create(key="12345678901234567890", accessesLeft=1)
-        request = self._get_request('/any')
+        # setup
+        self._createRandomAccessKey(accessesLeft=1)
+        request = self._create_request('/any')
         request.session = None
-        resp = RestrictAccessMiddleware().process_request(request)
+        # process
+        resp = self.mw.process_request(request)
+        # validate
         self.assertNotEqual(resp, None)
         self.assertEqual(resp.status_code, 500)
-        self.assertNotEqual(resp._get_content().find(RestrictAccessMiddleware().PROTECTED_NO_SESSION), -1)
-           
-
+        self._assertContains(resp, self.mw.PROTECTED_NO_SESSION)
