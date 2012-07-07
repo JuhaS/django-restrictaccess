@@ -1,8 +1,5 @@
 from django.conf import settings
-from django.http import HttpResponse, HttpResponseForbidden
-from django.shortcuts import get_object_or_404, render_to_response, redirect, \
-    render
-from django.template import RequestContext
+from django.shortcuts import render
 from django.utils import timezone
 from djrestrictaccess.models import WhitelistedSession, AccessKey
 import datetime
