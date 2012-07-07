@@ -14,7 +14,10 @@ import string
 
 
 class MockupSession:
-    session_key = "1111111111"
+    TEST_SESSION_KEY = "1111111111"
+
+    def __init__(self):
+        self.session_key = self.TEST_SESSION_KEY
 
 
 class SimpleTest(TestCase):
@@ -52,6 +55,11 @@ class SimpleTest(TestCase):
         AccessKey.objects.create(key=idStr, accessesLeft=accessesLeft)
         return idStr
 
+    def _createWhitelistedSession(self, sessionid=None):
+        if sessionid is None:
+            sessionid = MockupSession.TEST_SESSION_KEY
+        WhitelistedSession.objects.create(sessionkey=sessionid, expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+
     def setUp(self):
         self.mw = RestrictAccessMiddleware()
         pass
@@ -61,6 +69,10 @@ class SimpleTest(TestCase):
             k.delete()
         for k in WhitelistedSession.objects.all():
             k.delete()
+
+    #
+    #   TEST CASES START
+    #
 
     def test_correct_key(self):
         # setup
@@ -75,7 +87,7 @@ class SimpleTest(TestCase):
     def test_incorrect_key(self):
         # setup
         id = self._createRandomAccessKey()
-        request = self._create_request('/unlock?key=' + id[:-6] + "111111")
+        request = self._create_request('/unlock?key=' + id[:-6] + "111111")  # unrecognized key
         # process
         resp = self.mw.process_request(request)
         # validate
@@ -86,7 +98,7 @@ class SimpleTest(TestCase):
     def test_unauthorized_no_session(self):
         # setup
         self._createRandomAccessKey()
-        WhitelistedSession.objects.create(sessionkey="111122222", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+        self._createWhitelistedSession(sessionid="9999999999")  # unrecognized sessionid
         request = self._create_request('/normalsite')
         # process
         resp = self.mw.process_request(request)
@@ -97,17 +109,18 @@ class SimpleTest(TestCase):
 
     def test_authorized(self):
         # setup
-        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
+        self._createWhitelistedSession()
         request = self._create_request('/normalsite')
         # process
         resp = self.mw.process_request(request)
         # validate
         self.assertEqual(resp, None)
 
-    def test_authorized_accesspage(self):
+    def test_already_authorized_accesspage(self):
         # setup
-        WhitelistedSession.objects.create(sessionkey="1111111111", expiry=datetime.datetime.now().replace(tzinfo=timezone.utc) + datetime.timedelta(hours=1))
-        request = self._create_request('/unlock?key=22222222221111111111')
+        self._createWhitelistedSession()
+        anykey = "22222222221111111111"
+        request = self._create_request('/unlock?key=' + anykey)
         # process
         resp = self.mw.process_request(request)
         # validate
@@ -152,8 +165,9 @@ class SimpleTest(TestCase):
 
     def test_admin_correct_key(self):
         # setup
-        with self.settings(PROTECTED_ADMIN_KEY='99999999998888888888'):
-            request = self._create_request('/protect_admin?admin_key=99999999998888888888')
+        adminkey = '99999999998888888888'
+        with self.settings(PROTECTED_ADMIN_KEY=adminkey):
+            request = self._create_request('/protect_admin?admin_key=' + adminkey)
             request.META['HTTP_HOST'] = "localhost:8000"
             request.session.sessionkey = '3333333333'
             # process
