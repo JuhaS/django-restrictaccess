@@ -113,6 +113,32 @@ class RestrictAccessMiddleware(object):
                                       status=403)
 
     @classmethod
+    def handleValidAccesskey(cls, request, accessKey):
+        '''
+        Handle case when access url is accessed with valid access key.
+        '''
+        if accessKey.accessesLeft < 2:
+            accessKey.accessesLeft = 0
+            accessKey.delete()
+        else:
+            accessKey.accessesLeft = accessKey.accessesLeft - 1
+            accessKey.save()
+        expiry = datetime.datetime.now().replace(tzinfo=timezone.utc)
+        expiry += datetime.timedelta(hours=cls.PROTECTED_EXPIRY_HOURS)
+        if request.session.session_key:
+            WhitelistedSession.objects.create(expiry=expiry, sessionkey=request.session.session_key)
+        else:
+            client_ip = request.META['REMOTE_ADDR']
+            WhitelistedSession.objects.create(expiry=expiry, ip=client_ip)
+        msg = cls.PROTECTED_ACCESS_GRANTED.format(expiry_hours=cls.PROTECTED_EXPIRY_HOURS,
+                                                  sessions_left=accessKey.accessesLeft)
+        return render(request, 'protect_template.html',
+                        {"title": "Access Granted",
+                         "message": msg,
+                        },
+                        status=200)
+
+    @classmethod
     def handle_get_access_page(cls, request):
         # Sleep to prevent brute forcing
         time.sleep(cls.PROTECTED_SLEEP_TIME_MSEC / 1000)
@@ -123,26 +149,9 @@ class RestrictAccessMiddleware(object):
 
         k = cls.get_access_key(request)
         try:
-            access = AccessKey.objects.get(key=k)
+            accessKey = AccessKey.objects.get(key=k)
             # Valid key
-            if access.accessesLeft < 2:
-                access.accessesLeft = 0
-                access.delete()
-            else:
-                access.accessesLeft = access.accessesLeft - 1
-                access.save()
-            expiry = datetime.datetime.now().replace(tzinfo=timezone.utc)
-            expiry += datetime.timedelta(hours=cls.PROTECTED_EXPIRY_HOURS)
-            if request.session.session_key:
-                WhitelistedSession.objects.create(expiry=expiry, sessionkey=request.session.session_key)
-            else:
-                client_ip = request.META['REMOTE_ADDR']
-                WhitelistedSession.objects.create(expiry=expiry, ip=client_ip)
-            return render(request, 'protect_template.html',
-                            {"title": "Access Granted",
-                             "message": cls.PROTECTED_ACCESS_GRANTED.format(expiry_hours=cls.PROTECTED_EXPIRY_HOURS, sessions_left=access.accessesLeft),
-                            },
-                            status=200)
+            return cls.handleValidAccesskey(request, accessKey)
         except AccessKey.DoesNotExist:
             return render(request, 'protect_template.html',
                             {"title": "Unauthorized",
